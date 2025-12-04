@@ -1,7 +1,4 @@
-// File: api/chat.js (Vercel Serverless Function)
-// Coloque em /api/chat.js ou /api/chat.ts dependendo do seu setup.
-// Certifique-se de definir a variável de ambiente OPENAI_API_KEY na Vercel.
-
+// /api/chat.js — rota Serverless para Vercel
 import OpenAI from "openai";
 
 export default async function handler(req, res) {
@@ -10,43 +7,38 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { prompt, history } = req.body;
+    const { prompt } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: "Prompt ausente" });
     }
 
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-    // Construção da mensagem final para o modelo
-    const messages = [
-      {
-        role: "system",
-        content:
-          "Você é Lucas, um homem cristão, amoroso, humilde e profundamente grato a Deus. Sempre que responder, chame sua noiva de 'cariño'. Suas respostas devem ser românticas, suaves, cheias de fé e com referências a estrelas, galáxias e promessas de Deus. Responda sempre em português.",
-      },
-      ...(history || []).map((msg) => ({
-        role: msg.from === "user" ? "user" : "assistant",
-        content: msg.text,
-      })),
-      {
-        role: "user",
-        content: prompt,
-      },
-    ];
-
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini", // pode trocar para outro modelo
-      messages,
-      temperature: 0.8,
-      max_tokens: 400,
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY, // carregada da Vercel
     });
 
-    const reply = completion.choices?.[0]?.message?.content || "";
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Você é Lucas enviando mensagens à sua noiva. Sempre chame ela de 'cariño'. Use tom romântico cristão, mencionando Deus, luz e amor.",
+        },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.8,
+      max_tokens: 200,
+    });
+
+    const reply = completion.choices?.[0]?.message?.content || "cariño... ❤️";
 
     return res.status(200).json({ reply });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Erro interno no servidor" });
+    console.log("Erro no backend:", err);
+    return res.status(500).json({
+      error: "Erro interno",
+      detail: err.message,
+    });
   }
 }
